@@ -109,8 +109,13 @@ def main() -> int:
         return 2
 
     api = HfApi(token=os.environ.get("HF_TOKEN") or None)
+    existed = api.repo_exists(args.repo, repo_type="dataset")
     api.create_repo(args.repo, repo_type="dataset", private=args.private, exist_ok=True)
-    print(f"repo ready: {args.repo}")
+    print(f"repo {'already existed' if existed else 'created'}: {args.repo}")
+    if existed:
+        # create_repo(exist_ok=True) returns the existing repo untouched, so --private/--public does
+        # not change a repo that is already there. Say so rather than implying it did.
+        print("  visibility left as it was — change it in the repo's Settings if you need to")
 
     api.upload_file(
         path_or_fileobj=GITATTRIBUTES.encode(),
@@ -120,15 +125,18 @@ def main() -> int:
         commit_message="Track tier payloads with LFS",
     )
 
-    url = api.upload_folder(
+    commit = api.upload_folder(
         folder_path=str(args.out),
         repo_id=args.repo,
         repo_type="dataset",
         ignore_patterns=IGNORE,
         commit_message=args.message or f"oxid-dbpedia-ns {version}: {', '.join(tiers)}",
     )
-    print(f"\nuploaded: {url}")
-    print(f"dataset:  https://huggingface.co/datasets/{args.repo}")
+    print(f"\ncommit:  {getattr(commit, 'commit_url', commit)}")
+    print(f"dataset: https://huggingface.co/datasets/{args.repo}")
+    print(
+        "check the dataset viewer renders all three configs; if not, look at the configs: block in README.md"
+    )
     return 0
 
 

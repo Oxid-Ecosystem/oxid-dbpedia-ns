@@ -19,8 +19,13 @@ Hugging Face copy on purpose:
 
 A second run of --yes creates a new *version* of the dataset rather than a duplicate.
 
-Needs the `kaggle` client and an API token:  uv sync --extra publish, then put kaggle.json in
-~/.kaggle/ (Kaggle → Settings → API → Create New Token), or set KAGGLE_USERNAME and KAGGLE_KEY.
+  - `--keep-tabular` is always passed. Kaggle converts tabular files to CSV by default, which
+    would destroy the 1536-float `vector` column and the `props` struct in `entities.parquet`.
+
+Needs the `kaggle` client (>= 2.2, `uv sync --extra dev --extra publish`) and credentials, any of:
+`kaggle auth login` (OAuth, recommended), `KAGGLE_API_TOKEN`, or a token in `~/.kaggle/access_token`
+— the old `kaggle.json` still works. Authentication is probed with a real API call before anything
+is uploaded, so whichever mechanism you use is checked rather than guessed.
 Environment: KAGGLE_DATASET_ID.
 """
 
@@ -55,10 +60,13 @@ def strip_frontmatter(text: str) -> str:
     return parts[2].lstrip("\n") if len(parts) == 3 else text
 
 
-def credentials_present() -> bool:
-    if os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY"):
-        return True
-    return (Path.home() / ".kaggle" / "kaggle.json").exists()
+def authenticated(cli: list[str]) -> tuple[bool, str]:
+    """Ask the client itself. It resolves OAuth, KAGGLE_API_TOKEN, ~/.kaggle/access_token and
+    kaggle.json in that order, and the list keeps changing, so probing beats reimplementing it."""
+    r = subprocess.run([*cli, "datasets", "list", "-m", "--page-size", "1"], capture_output=True, text=True)
+    if r.returncode == 0:
+        return True, ""
+    return False, (r.stderr or r.stdout).strip()
 
 
 def kaggle_cli() -> list[str] | None:
@@ -130,6 +138,7 @@ def main() -> int:
     print(f"subtitle    {SUBTITLE} ({len(SUBTITLE)} chars, Kaggle allows 20-80)")
     print(f"license     {LICENSE}")
     print(f"card        {len(description)} chars from {card}")
+    print("flags       -r zip (one archive per tier), -t (no CSV conversion: keeps the vector column)")
 
     if not args.yes:
         print(f"\nplan only — re-run with --yes to upload (would write {args.out / 'dataset-metadata.json'})")
@@ -151,12 +160,10 @@ def main() -> int:
     if cli is None:
         print("to_kaggle: the kaggle client is missing — run `uv sync --extra publish`", file=sys.stderr)
         return 2
-    if not credentials_present():
-        print(
-            "to_kaggle: no Kaggle credentials — put kaggle.json in ~/.kaggle/ "
-            "(Kaggle → Settings → API → Create New Token) or set KAGGLE_USERNAME and KAGGLE_KEY",
-            file=sys.stderr,
-        )
+    ok, why = authenticated(cli)
+    if not ok:
+        print("to_kaggle: not authenticated to Kaggle. Run `kaggle auth login`, or see:", file=sys.stderr)
+        print(f"  {why}", file=sys.stderr)
         return 2
 
     meta_path = args.out / "dataset-metadata.json"
@@ -177,7 +184,7 @@ def main() -> int:
         ]
         print(f"dataset exists — creating a new version: {' '.join(cmd)}")
     else:
-        cmd = [*cli, "datasets", "create", "-p", str(args.out), "-r", "zip"]
+        cmd = [*cli, "datasets", "create", "-p", str(args.out), "-r", "zip", "-t"]
         if args.public:
             cmd.append("-u")
         print(f"new dataset: {' '.join(cmd)}")

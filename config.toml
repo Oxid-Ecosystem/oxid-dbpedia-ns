@@ -1,0 +1,335 @@
+# oxid-dbpedia-ns build configuration.
+# Every stage reads this file. A change reruns from the first stage whose inputs it touches.
+# Paths are relative to this file. Nothing in here is secret; the OpenAI key comes from OPENAI_API_KEY.
+
+[dataset]
+name = "oxid-dbpedia-ns"
+version = "0.1.0"
+license = "CC-BY-SA-4.0"
+# Nested tiers, ascending. The last tier is the one that gets embedded; smaller tiers are prefixes of it.
+tiers = [50000, 100000, 180000]   # top tier capped at what the pool above the floor supports (184,762 on the 2022.12 dumps)
+
+[paths]
+cache = "cache"   # downloaded dumps and their Parquet conversions, never committed
+work = "work"     # per-stage Parquet
+out = "out"       # final tier directories
+
+# ---------------------------------------------------------------------------
+# Stage 1: sources. One DBpedia snapshot for every DBpedia file.
+# sha256 is optional: when set it is verified after download; when empty the
+# observed hash is recorded in cache/sources.lock.json and verified on reruns.
+# `url` may be a file:// path for offline or test runs.
+# ---------------------------------------------------------------------------
+[sources]
+# All DBpedia data files: snapshot 2022.12.01 (the latest Databus release as of 2026-09-18).
+# The DBO ontology is published separately through DBpedia Archivo (account `ontologies`).
+databus_snapshot = "2022.12.01"
+ontology_release = "2024.08.01-180007"
+# Wikimedia's User-Agent policy requires a descriptive agent with a contact URL; the default one is blocked (403).
+user_agent = "oxid-dbpedia-ns/0.1 (+https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns)"
+
+[[sources.files]]
+key = "ontology"
+url = "https://databus.dbpedia.org/ontologies/dbpedia.org/ontology/2024.08.01-180007/ontology_type=parsed.nt"
+sha256 = "33408e32640911a0d32575054d1c8d02a6d7725878f56b73758674d3af9e1d05"
+format = "nt"
+
+[[sources.files]]
+key = "instance_types"
+url = "https://downloads.dbpedia.org/repo/dbpedia/mappings/instance-types/2022.12.01/instance-types_lang=en_specific.ttl.bz2"
+sha256 = "59dc900bea2ec126b8c2a4097be4ccab5f737bf4616a3f1a9d300942e32c2c3e"
+format = "nt.bz2"
+
+[[sources.files]]
+key = "mappingbased_objects"
+url = "https://downloads.dbpedia.org/repo/dbpedia/mappings/mappingbased-objects/2022.12.01/mappingbased-objects_lang=en.ttl.bz2"
+sha256 = "76747563b7bb6587d8707ae65489186b54d17acec060da7566397992c171371a"
+format = "nt.bz2"
+
+[[sources.files]]
+key = "mappingbased_literals"
+url = "https://downloads.dbpedia.org/repo/dbpedia/mappings/mappingbased-literals/2022.12.01/mappingbased-literals_lang=en.ttl.bz2"
+sha256 = "094b566bc9983842b1e97cecb2119c0e0f640e0a13882cf3f294b91b02ab770a"
+format = "nt.bz2"
+
+[[sources.files]]
+key = "short_abstracts"
+url = "https://downloads.dbpedia.org/repo/dbpedia/text/short-abstracts/2022.12.01/short-abstracts_lang=en.ttl.bz2"
+sha256 = "e4793027fabd922948763794c4643b07729d207bb537fc766a15961aa711efdd"
+format = "nt.bz2"
+
+# Wikidata item -> every language chapter's resource IRI. Gives the language count per entity
+# and the per-language titles needed to join pageviews. (The generic interlanguage-links file
+# for en only lists pages without a Wikidata mapping and is useless for this purpose.)
+[[sources.files]]
+key = "sameas_all_wikis"
+url = "https://downloads.dbpedia.org/repo/dbpedia/wikidata/sameas-all-wikis/2022.12.01/sameas-all-wikis.ttl.bz2"
+sha256 = "ebf3220f3f05ae19e98d070c5247f21a5547f21732d2f5ff5db9084d09b54eb1"
+format = "nt.bz2"
+
+[[sources.files]]
+key = "disambiguations"
+url = "https://downloads.dbpedia.org/repo/dbpedia/generic/disambiguations/2022.12.01/disambiguations_lang=en.ttl.bz2"
+sha256 = "f7be7a7e4bcd50d8496566d31e061d212ff76999cf31d138daba032e1321440d"
+format = "nt.bz2"
+
+# One-hop redirects; used to canonicalise object IRIs (dbr:USA -> dbr:United_States) before geography resolution.
+[[sources.files]]
+key = "redirects"
+url = "https://downloads.dbpedia.org/repo/dbpedia/generic/redirects/2022.12.01/redirects_lang=en_transitive.ttl.bz2"
+sha256 = "65fe226b0f2e47f35e58ee489bf02bdee8cd0cb34a1682b1d0b727f6d181e03a"
+format = "nt.bz2"
+
+[pageviews]
+# 12 fixed months of Wikimedia pageview_complete monthly dumps (user traffic only).
+months = ["2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08"]
+url_template = "https://dumps.wikimedia.org/other/pageview_complete/monthly/{year}/{year}-{month}/pageviews-{year}{month}-user.bz2"
+# English plus the 10 target non-English editions. Polish was dropped with Poland (2026-09-18).
+languages = ["en", "de", "fr", "nl", "es", "it", "pt", "sv", "da", "no", "fi"]
+# Raw monthly files (about 5.6 GB each) are deleted after aggregation unless this is false.
+delete_raw_after_aggregation = true
+# Access methods summed per title. Rows are: wiki_code title page_id access_method monthly_total daily_string.
+access_methods = ["desktop", "mobile-web", "mobile-app"]
+
+# ---------------------------------------------------------------------------
+# Stage 2: class buckets. Ordered: order breaks ties when two buckets claim a
+# type at the same distance. `roots` are DBO class local names. Shares are
+# renormalised to sum to 1 (they sum to 0.96 after dropping Politician/Royalty).
+# ---------------------------------------------------------------------------
+[candidates]
+drop_title_prefixes = ["List_of_", "Lists_of_", "Index_of_", "Outline_of_", "Timeline_of_"]
+abstract_min_chars = 40
+
+[[buckets]]
+name = "Scientist"
+group = "People"
+roots = ["Scientist"]
+share = 0.06
+
+[[buckets]]
+name = "Artist"
+group = "People"
+roots = ["Painter", "Sculptor", "Photographer", "Artist"]
+share = 0.05
+
+[[buckets]]
+name = "MusicalArtist"
+group = "People"
+roots = ["MusicalArtist", "Band"]
+share = 0.07
+
+[[buckets]]
+name = "Writer"
+group = "People"
+roots = ["Writer"]
+share = 0.05
+
+[[buckets]]
+name = "Athlete"
+group = "People"
+roots = ["Athlete"]
+share = 0.10
+
+# Politician and Royalty are deliberately absent (decision of 2026-09-18).
+
+[[buckets]]
+name = "Actor"
+group = "People"
+roots = ["Actor"]   # film directors have no DBO class; they are Person with an occupation
+share = 0.03
+
+[[buckets]]
+name = "City"
+group = "Places"
+roots = ["City", "Town"]
+share = 0.10
+
+[[buckets]]
+name = "Country"
+group = "Places"
+roots = ["Country", "AdministrativeRegion"]
+share = 0.02
+
+[[buckets]]
+name = "Building"
+group = "Places"
+roots = ["Building", "HistoricPlace", "Museum"]
+share = 0.06
+
+[[buckets]]
+name = "NaturalPlace"
+group = "Places"
+roots = ["Mountain", "River", "Lake"]
+share = 0.04
+
+[[buckets]]
+name = "Company"
+group = "Organisations"
+roots = ["Company"]
+share = 0.07
+
+[[buckets]]
+name = "University"
+group = "Organisations"
+roots = ["University"]
+share = 0.03
+
+[[buckets]]
+name = "SportsTeam"
+group = "Organisations"
+roots = ["SportsTeam"]
+share = 0.03
+
+[[buckets]]
+name = "OtherOrganisation"
+group = "Organisations"
+roots = ["Organisation"]
+share = 0.02
+
+[[buckets]]
+name = "Film"
+group = "Works"
+roots = ["Film"]
+share = 0.05
+
+[[buckets]]
+name = "Music"
+group = "Works"
+roots = ["Album", "Single"]
+share = 0.03
+
+[[buckets]]
+name = "Book"
+group = "Works"
+roots = ["Book"]
+share = 0.03
+
+[[buckets]]
+name = "TelevisionShow"
+group = "Works"
+roots = ["TelevisionShow"]
+share = 0.02
+
+[[buckets]]
+name = "ArtworkGame"
+group = "Works"
+roots = ["Artwork", "VideoGame"]
+share = 0.02
+
+[[buckets]]
+name = "Event"
+group = "Events"
+roots = ["MilitaryConflict", "SportsEvent", "Event"]
+share = 0.05
+
+[[buckets]]
+name = "Other"
+group = "Other"
+roots = ["Automobile", "Aircraft", "Food"]
+share = 0.03
+
+# ---------------------------------------------------------------------------
+# Stage 3: geography. Target countries as DBpedia resource local names.
+# Central Europe and Greece are out (decision of 2026-09-18). Canada is out.
+# ---------------------------------------------------------------------------
+[geography]
+countries = [
+  "Austria", "Belgium", "Denmark", "Finland", "France", "Germany", "Iceland",
+  "Republic_of_Ireland", "Italy", "Liechtenstein", "Luxembourg", "Monaco", "Netherlands",
+  "Norway", "Portugal", "Spain", "Sweden", "Switzerland", "United_Kingdom", "United_States",
+]
+# Hand-kept table mapping historic states, demonyms and aliases to a modern country. Grow it from work/geo_rejected.parquet.
+country_map = "data/country_map.csv"
+max_hops = 3
+# Entities with no resolved country pass when they have an article in at least this many target non-English editions.
+unresolved_min_editions = 4
+editions = ["de", "fr", "nl", "es", "it", "pt", "sv", "da", "no", "fi"]
+
+# Properties tried, in order, per group. Values pointing at a place are walked up via country / isPartOf.
+[geography.resolution]
+People = ["nationality", "citizenship", "birthPlace", "team"]
+Places = ["country", "isPartOf"]
+Organisations = ["locationCountry", "country", "headquarter", "location"]
+Works = ["country", "author", "director", "artist", "writer", "musicalArtist"]
+Events = ["place", "location", "country"]
+Other = ["manufacturer", "origin", "country"]
+# Properties whose value is a person or organisation whose own resolved countries are inherited.
+inherit_from = ["author", "director", "artist", "writer", "musicalArtist", "manufacturer"]
+walk_up = ["country", "isPartOf", "location", "locationCountry"]
+
+# ---------------------------------------------------------------------------
+# Stage 4: notability ranking.
+# ---------------------------------------------------------------------------
+[ranking]
+weight_views = 0.6
+weight_languages = 0.4
+# Starting floor values (decision of 2026-09-18); tune after reading work/preflight.json.
+floor_views = 5000
+floor_languages = 5
+
+# ---------------------------------------------------------------------------
+# Stage 5: property whitelist per group and embedding settings.
+# ---------------------------------------------------------------------------
+[properties.People]
+literals = ["birthDate", "deathDate"]
+objects = ["birthPlace", "deathPlace", "nationality", "almaMater", "team", "award"]
+
+[properties.Places]
+literals = ["populationTotal", "areaTotal", "geo:lat", "geo:long"]
+objects = ["country", "isPartOf"]
+
+[properties.Organisations]
+literals = ["foundingYear", "numberOfEmployees"]
+objects = ["headquarter", "founder", "industry"]
+
+[properties.Works]
+literals = ["releaseDate", "runtime"]
+objects = ["author", "director", "artist", "starring", "genre"]
+
+[properties.Events]
+literals = ["date"]
+objects = ["place", "commander"]
+
+[properties.Other]
+literals = []
+objects = ["manufacturer"]
+
+# Column types for the props struct. Everything not listed is kept as a string.
+[properties.types]
+populationTotal = "int"
+areaTotal = "float"
+"geo:lat" = "float"
+"geo:long" = "float"
+foundingYear = "int"
+numberOfEmployees = "int"
+runtime = "float"
+
+[embedding]
+provider = "openai_batch"     # openai_batch | openai_sync | fake (deterministic, tests only)
+model = "text-embedding-3-small"
+dimensions = 1536
+batch_file_size = 50000       # requests per Batch API file
+sync_chunk_size = 512         # inputs per request for openai_sync
+poll_seconds = 30
+# Prices in USD per 1M tokens (OpenAI pricing page, 2026-09-18). Used only for the cost counter:
+# `oxid-dbpedia-ns cost` and the cost_usd field in the manifests. Update when OpenAI changes them.
+price_per_million_tokens = 0.02          # text-embedding-3-small, standard
+batch_price_per_million_tokens = 0.01    # Batch API (50% discount)
+
+# TBox cleaning before the OWL 2 EL filter (Stage 6). DBO ships ~1,000 Urdu-localised duplicate
+# classes/properties, equivalences to wikidata/schema.org, and labels in 40 languages; none of it
+# helps a demo and OxidDB's reasoner treats the duplicates as extra superclasses.
+[tbox]
+drop_non_ascii_dbo = true
+drop_external_equivalents = true
+label_languages = ["en"]
+
+# ---------------------------------------------------------------------------
+# Stage 7: validation.
+# ---------------------------------------------------------------------------
+[validation]
+share_tolerance = 0.01
+max_country_share = 0.50
+max_country_share_country = "United_States"
+probes = ["Albert Einstein", "Eiffel Tower", "AFC Ajax", "The Beatles", "Rembrandt", "Volkswagen", "Paris", "Marie Curie", "The Godfather", "Battle of Waterloo"]
+neighbours = 10

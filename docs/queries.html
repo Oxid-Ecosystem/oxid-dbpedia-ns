@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Eight copy-ready OxQL queries for the oxid-dbpedia-ns t50 tier, with the results a live OxidDB instance returned.">
+<title>OxidDB Neurosymbolic Queries</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+:root {
+  --ground:   #eef1f2;
+  --surface:  #ffffff;
+  --ink:      #161a1c;
+  --ink-2:    #5c666b;
+  --ink-3:    #8d979b;
+  --rule:     #d5dcde;
+  --rule-2:   #e6eaec;
+  --neural:   #ab4227;
+  --neural-b: #fbeee9;
+  --symbolic: #235a66;
+  --symbolic-b: #e7f0f1;
+  --code-bg:  #171d20;
+  --code-ink: #dfe6e8;
+  --code-dim: #7e8b90;
+  --tok-kw:   #e3a765;
+  --tok-iri:  #79b8c4;
+  --tok-var:  #bdaedd;
+  --tok-num:  #dd8f6d;
+  --tok-str:  #9dc98c;
+  --ok:       #3f7d55;
+
+  --measure: 66ch;
+  --wrap: 900px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:   #101416;
+    --surface:  #181e21;
+    --ink:      #e6eaec;
+    --ink-2:    #99a4a9;
+    --ink-3:    #6d787d;
+    --rule:     #2a3337;
+    --rule-2:   #222a2d;
+    --neural:   #e08360;
+    --neural-b: #2a1b15;
+    --symbolic: #7cbecb;
+    --symbolic-b: #14262a;
+    --code-bg:  #0c1012;
+    --code-ink: #dfe6e8;
+    --code-dim: #6f7c81;
+    --ok:       #71b487;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:   #101416;
+  --surface:  #181e21;
+  --ink:      #e6eaec;
+  --ink-2:    #99a4a9;
+  --ink-3:    #6d787d;
+  --rule:     #2a3337;
+  --rule-2:   #222a2d;
+  --neural:   #e08360;
+  --neural-b: #2a1b15;
+  --symbolic: #7cbecb;
+  --symbolic-b: #14262a;
+  --code-bg:  #0c1012;
+  --code-ink: #dfe6e8;
+  --code-dim: #6f7c81;
+  --ok:       #71b487;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  font-size: 16.5px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding-inline: 22px;
+  padding-block: 0 72px;
+}
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  padding-block: 54px 30px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.eyebrow {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 14px;
+}
+
+h1 {
+  font-family: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.1rem, 6vw, 3.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  margin: 0 0 16px;
+}
+
+.standfirst {
+  max-width: var(--measure);
+  margin: 0;
+  font-size: 1.06rem;
+  color: var(--ink-2);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 30px;
+  margin-top: 26px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.facts b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* ---------- sections ---------- */
+
+.section-head {
+  margin-block: 56px 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+h2 {
+  font-family: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.section-note {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+
+/* ---------- a query specimen ---------- */
+
+.spec {
+  padding-block: 34px;
+  border-bottom: 1px solid var(--rule-2);
+}
+
+.spec-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.num {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+.badge.n { color: var(--neural);   background: var(--neural-b); }
+.badge.s { color: var(--symbolic); background: var(--symbolic-b); }
+
+h3 {
+  font-family: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
+  font-size: 1.32rem;
+  line-height: 1.2;
+  letter-spacing: -0.008em;
+  text-wrap: balance;
+  margin: 0 0 8px;
+}
+
+.claim {
+  max-width: var(--measure);
+  margin: 0 0 20px;
+  color: var(--ink-2);
+}
+
+.why {
+  max-width: var(--measure);
+  margin: 18px 0 0;
+  font-size: 0.95rem;
+}
+.why em { font-style: italic; }
+.why code { font-size: 0.86em; }
+
+/* ---------- code panel ---------- */
+
+.code {
+  position: relative;
+  background: var(--code-bg);
+  border-radius: 5px;
+  margin-block: 14px;
+}
+
+.code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px 9px 15px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.code-tag {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--code-dim);
+}
+
+pre {
+  margin: 0;
+  padding: 15px;
+  overflow-x: auto;
+}
+
+code {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.66;
+  color: var(--code-ink);
+  white-space: pre;
+}
+
+.kw  { color: var(--tok-kw); }
+.iri { color: var(--tok-iri); }
+.var { color: var(--tok-var); }
+.num-t { color: var(--tok-num); }
+.str { color: var(--tok-str); }
+.cm  { color: var(--code-dim); font-style: italic; }
+
+/* ---------- copy button ---------- */
+
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  background: rgba(255,255,255,0.07);
+  color: var(--code-ink);
+  border: 1px solid rgba(255,255,255,0.11);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.copy:hover { background: rgba(255,255,255,0.14); }
+.copy:focus-visible {
+  outline: 2px solid var(--tok-iri);
+  outline-offset: 2px;
+}
+.copy svg { width: 13px; height: 13px; display: block; }
+.copy .check { display: none; }
+.copy.ok {
+  color: #9bd4ae;
+  border-color: rgba(155,212,174,0.45);
+  background: rgba(155,212,174,0.12);
+}
+.copy.ok .sheets { display: none; }
+.copy.ok .check  { display: block; }
+
+/* ---------- result readout ---------- */
+
+.out {
+  margin-top: 16px;
+  padding: 2px 0 2px 16px;
+  border-left: 2px solid var(--symbolic);
+}
+.spec.neural .out { border-left-color: var(--neural); }
+
+.out-head.stale { color: var(--neural); }
+.out-head {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 2px 16px;
+  align-items: baseline;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.rows .t { color: var(--ink); overflow-wrap: anywhere; }
+.rows .s { color: var(--ink-2); }
+.rows .a { color: var(--ink-3); font-size: 11.5px; }
+.rows .a::before { content: "⊑ "; }
+
+@media (max-width: 560px) {
+  .rows { grid-template-columns: 1fr auto; }
+  .rows .a { grid-column: 1 / -1; margin-bottom: 4px; }
+}
+
+/* ---------- pitfalls ---------- */
+
+.pit {
+  display: grid;
+  gap: 0;
+  margin-top: 22px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 4px 22px;
+  padding: 15px 18px;
+  border-top: 1px solid var(--rule-2);
+}
+.pit-row:first-child { border-top: none; }
+
+.pit-row .bad,
+.pit-row .good {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.pit-row .bad  { color: var(--neural); text-decoration: line-through; text-decoration-thickness: 1px; }
+.pit-row .good { color: var(--symbolic); }
+.pit-row p {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+  color: var(--ink-2);
+}
+
+@media (max-width: 620px) {
+  .pit-row { grid-template-columns: 1fr; }
+}
+
+/* ---------- footer ---------- */
+
+footer {
+  margin-top: 54px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  line-height: 1.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+<style>:root { color-scheme: light dark; }</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">oxid-dbpedia-ns · tier t50 · OxQL</p>
+    <h1>Eight queries that need both halves</h1>
+    <p class="standfirst">
+      Five queries where the vector index and the OWL&nbsp;2&nbsp;EL reasoner each do work the other
+      cannot, and three that are pure classification. Every result below was returned by a live t50
+      instance — the timings and cosine scores are what it actually answered.
+    </p>
+    <div class="facts">
+      <span><b>50,000</b> entities</span>
+      <span><b>40,154</b> edges</span>
+      <span><b>1,536</b>-dim, SQ8 + cold-f32</span>
+      <span><b>788</b> classes</span>
+      <span><b>212,137</b> inferred type assertions</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <h2>Before you paste</h2>
+      <span class="section-note">setup</span>
+    </div>
+
+    <p class="claim">
+      The API takes OxQL over <code>POST /query</code>. The <code>Content-Type</code> header is not
+      optional — without it the server answers
+      <em>“Expected request with <code>Content-Type: application/json</code>”</em> and nothing runs.
+    </p>
+
+    <div class="code">
+      <div class="code-bar">
+        <span class="code-tag">shell</span>
+        <button class="copy" type="button" aria-label="Copy shell setup">
+          <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+          <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+          <span class="copy-label">Copy</span>
+        </button>
+      </div>
+<pre><code>export OXIDDB_URL=http://127.0.0.1:7978
+export OXIDDB_API_KEY=your-token-here
+
+curl -s -X POST "$OXIDDB_URL/query" \
+  -H "Authorization: Bearer $OXIDDB_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"FIND ?x WHERE ?x IS-A &lt;http://dbpedia.org/ontology/BodyOfWater&gt; LIMIT 8"}'</code></pre>
+    </div>
+
+    <p class="claim">
+      Similarity takes the words you would say out loud. The string after <code>TO</code> is
+      embedded by the instance with the model the corpus was built on —
+      <code>text-embedding-3-small</code> at 1,536 dimensions — so every query below pastes and
+      runs unchanged, in the console at <code>/app/query</code> or over curl. Nothing to substitute,
+      no vector to carry.
+    </p>
+
+    <p class="claim">
+      A literal vector still works, and is what you want when the probe should be an entity’s
+      <em>stored</em> vector rather than a fresh embedding of its name — 1,536 plain decimals, no
+      exponent, because OxQL’s number literals do not accept one. The instance will hand you one
+      from any individual it holds.
+    </p>
+
+    <div class="code">
+      <div class="code-bar">
+        <span class="code-tag">shell · exact stored vector</span>
+        <button class="copy" type="button" aria-label="Copy vector helper">
+          <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+          <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+          <span class="copy-label">Copy</span>
+        </button>
+      </div>
+<pre><code>curl -s -H "Authorization: Bearer $OXIDDB_API_KEY" \
+  "$OXIDDB_URL/individuals/http%3A%2F%2Fdbpedia.org%2Fresource%2FAlbert_Einstein" \
+  | python3 -c 'import json,sys; v=json.load(sys.stdin)["vectors"]["dbpedia"]; print("["+",".join(f"{x:.6f}" for x in v)+"]")'</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Vector and ontology together</h2>
+      <span class="section-note">five queries</span>
+    </div>
+
+    <!-- 1 -->
+    <article class="spec neural">
+      <div class="spec-top">
+        <span class="num">01</span>
+        <span class="badge n">vector + ontology</span>
+      </div>
+      <h3>One embedding, three different answers</h3>
+      <p class="claim">
+        Einstein’s vector, asked three ways. Unconstrained it returns the people nearest him in
+        embedding space. Constrained to a class, it returns the best <em>member of that class</em> —
+        a different question with a different answer.
+      </p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">a · no ontology</span>
+          <button class="copy" type="button" aria-label="Copy query 1a">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="kw">NEAR</span> <span class="var">?x</span>.dbpedia <span class="kw">TO</span> <span class="str">&quot;Albert Einstein&quot;</span> <span class="kw">LIMIT</span> <span class="num-t">8</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head stale">vector-literal run · 14.9 ms · re-measure pending</div>
+        <div class="rows">
+          <span class="t">Albert Einstein</span><span class="s">1.000</span><span class="a">Scientist</span>
+          <span class="t">Wolfgang Pauli</span><span class="s">0.640</span><span class="a">Scientist</span>
+          <span class="t">Werner Heisenberg</span><span class="s">0.634</span><span class="a">Scientist</span>
+          <span class="t">Max Born</span><span class="s">0.621</span><span class="a">Scientist</span>
+          <span class="t">Isaac Newton</span><span class="s">0.610</span><span class="a">Scientist</span>
+        </div>
+      </div>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">b · scoped to Person</span>
+          <button class="copy" type="button" aria-label="Copy query 1b">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/Person&gt;</span>
+  <span class="kw">AND</span> <span class="kw">NEAR</span> <span class="var">?x</span>.dbpedia <span class="kw">TO</span> <span class="str">&quot;Albert Einstein&quot;</span>
+  <span class="kw">LIMIT</span> <span class="num-t">8</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head stale">vector-literal run · 1.4 ms, 10× faster · re-measure pending</div>
+        <div class="rows">
+          <span class="t">Albert Einstein</span><span class="s">1.000</span><span class="a">Scientist</span>
+          <span class="t">Wolfgang Pauli</span><span class="s">0.640</span><span class="a">Scientist</span>
+          <span class="t">Werner Heisenberg</span><span class="s">0.634</span><span class="a">Scientist</span>
+        </div>
+      </div>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">c · scoped to EducationalInstitution</span>
+          <button class="copy" type="button" aria-label="Copy query 1c">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/EducationalInstitution&gt;</span>
+  <span class="kw">AND</span> <span class="kw">NEAR</span> <span class="var">?x</span>.dbpedia <span class="kw">TO</span> <span class="str">&quot;Albert Einstein&quot;</span>
+  <span class="kw">LIMIT</span> <span class="num-t">8</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head stale">vector-literal run · 45.7 ms · re-measure pending</div>
+        <div class="rows">
+          <span class="t">Institute for Advanced Study</span><span class="s">0.423</span><span class="a">University</span>
+          <span class="t">University of Cambridge</span><span class="s">0.372</span><span class="a">University</span>
+          <span class="t">Cavendish Laboratory</span><span class="s">0.325</span><span class="a">University</span>
+          <span class="t">ETH Zurich</span><span class="s">0.325</span><span class="a">University</span>
+          <span class="t">University of Vienna</span><span class="s">0.323</span><span class="a">University</span>
+        </div>
+      </div>
+
+      <p class="why">
+        This is the query to open a demo with. The Institute for Advanced Study — where Einstein
+        actually spent his last twenty years — scores <em>0.423</em>. It is nowhere near the global
+        top eight, so no amount of tuning <code>k</code> on a plain vector search surfaces it. And
+        nothing in the database asserts <code>EducationalInstitution</code>: all 1,458 members are
+        asserted <code>University</code>, <code>School</code> or <code>College</code>. The class being
+        searched exists only in the reasoner.
+      </p>
+    </article>
+
+    <!-- 2 -->
+    <article class="spec neural">
+      <div class="spec-top">
+        <span class="num">02</span>
+        <span class="badge n">vector + ontology</span>
+      </div>
+      <h3>Search a class nobody asserts</h3>
+      <p class="claim">
+        <code>PopulatedPlace</code> has 6,361 members in this tier and zero assertions. Every row
+        arrives through subsumption from <code>City</code>, <code>Town</code> or
+        <code>Village</code>.
+      </p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">probe · &quot;Amsterdam&quot;</span>
+          <button class="copy" type="button" aria-label="Copy query 2">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/PopulatedPlace&gt;</span>
+  <span class="kw">AND</span> <span class="kw">NEAR</span> <span class="var">?x</span>.dbpedia <span class="kw">TO</span> <span class="str">&quot;Amsterdam&quot;</span>
+  <span class="kw">LIMIT</span> <span class="num-t">8</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head stale">vector-literal run · 7.7 ms · re-measure pending</div>
+        <div class="rows">
+          <span class="t">Amsterdam</span><span class="s">1.000</span><span class="a">City</span>
+          <span class="t">Rotterdam</span><span class="s">0.684</span><span class="a">City</span>
+          <span class="t">The Hague</span><span class="s">0.680</span><span class="a">City</span>
+          <span class="t">Amstelveen</span><span class="s">0.665</span><span class="a">Town</span>
+          <span class="t">Zaandam</span><span class="s">0.654</span><span class="a">City</span>
+          <span class="t">Haarlem</span><span class="s">0.642</span><span class="a">City</span>
+          <span class="t">Diemen</span><span class="s">0.634</span><span class="a">Town</span>
+        </div>
+      </div>
+
+      <p class="why">
+        <code>City</code> and <code>Town</code> are different asserted classes. One answer set, no tag
+        anyone wrote.
+      </p>
+    </article>
+
+    <!-- 3 -->
+    <article class="spec neural">
+      <div class="spec-top">
+        <span class="num">03</span>
+        <span class="badge n">vector + ontology + literal</span>
+      </div>
+      <h3>Add a constraint that bites</h3>
+      <p class="claim">
+        Similarity, inferred class, and a numeric data property in one pass. Note the second
+        constraint drops Amsterdam itself — its population is under a million — and the answer climbs
+        to the administrative units that clear the bar.
+      </p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">probe · &quot;Amsterdam&quot;</span>
+          <button class="copy" type="button" aria-label="Copy query 3">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/PopulatedPlace&gt;</span>
+  <span class="kw">AND</span> <span class="var">?x</span>.<span class="iri">http://dbpedia.org/ontology/populationTotal</span> &gt; <span class="num-t">1000000</span>
+  <span class="kw">AND</span> <span class="kw">NEAR</span> <span class="var">?x</span>.dbpedia <span class="kw">TO</span> <span class="str">&quot;Amsterdam&quot;</span>
+  <span class="kw">LIMIT</span> <span class="num-t">8</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head stale">vector-literal run · 6.8 ms · re-measure pending</div>
+        <div class="rows">
+          <span class="t">North Holland</span><span class="s">0.628</span><span class="a">AdministrativeRegion</span>
+          <span class="t">South Holland</span><span class="s">0.622</span><span class="a">AdministrativeRegion</span>
+          <span class="t">Utrecht (province)</span><span class="s">0.571</span><span class="a">AdministrativeRegion</span>
+          <span class="t">Copenhagen</span><span class="s">0.557</span><span class="a">City</span>
+          <span class="t">Kingdom of the Netherlands</span><span class="s">0.555</span><span class="a">Country</span>
+          <span class="t">North Brabant</span><span class="s">0.545</span><span class="a">AdministrativeRegion</span>
+        </div>
+      </div>
+
+      <p class="why">
+        Three asserted classes — <code>AdministrativeRegion</code>, <code>City</code>,
+        <code>Country</code> — answering one <code>PopulatedPlace</code> question, ranked by
+        embedding, filtered on a typed literal. That combination is the whole pitch.
+      </p>
+    </article>
+
+    <!-- 4 -->
+    <article class="spec neural">
+      <div class="spec-top">
+        <span class="num">04</span>
+        <span class="badge n">vector + ontology</span>
+      </div>
+      <h3>Five hops of subsumption, 1.3 ms</h3>
+      <p class="claim">
+        DBpedia models people as organisms:
+        <code>SoccerPlayer ⊑ Athlete ⊑ Person ⊑ Animal ⊑ Eukaryote ⊑ Species</code>. Searching
+        <code>Species</code> reaches every footballer in the tier.
+      </p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">probe · &quot;Cristiano Ronaldo&quot;</span>
+          <button class="copy" type="button" aria-label="Copy query 4">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/Species&gt;</span>
+  <span class="kw">AND</span> <span class="kw">NEAR</span> <span class="var">?x</span>.dbpedia <span class="kw">TO</span> <span class="str">&quot;Cristiano Ronaldo&quot;</span>
+  <span class="kw">LIMIT</span> <span class="num-t">8</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head stale">vector-literal run · 1.3 ms · re-measure pending</div>
+        <div class="rows">
+          <span class="t">Cristiano Ronaldo</span><span class="s">1.000</span><span class="a">SoccerPlayer</span>
+          <span class="t">Ronaldinho</span><span class="s">0.686</span><span class="a">SoccerPlayer</span>
+          <span class="t">Luís Figo</span><span class="s">0.603</span><span class="a">SoccerPlayer</span>
+          <span class="t">Cássio (footballer, born 1987)</span><span class="s">0.560</span><span class="a">SoccerPlayer</span>
+          <span class="t">João Mário (footballer, born January 1993)</span><span class="s">0.551</span><span class="a">SoccerPlayer</span>
+        </div>
+      </div>
+
+      <p class="why">
+        Worth saying out loud in a demo: nobody wrote “Ronaldo is a species”. The reasoner derived it,
+        and the vector index ranked inside that derived extent.
+      </p>
+    </article>
+
+    <!-- 5 -->
+    <article class="spec neural">
+      <div class="spec-top">
+        <span class="num">05</span>
+        <span class="badge n">vector + ontology</span>
+      </div>
+      <h3>“Things like the Eiffel Tower”</h3>
+      <p class="claim">
+        The phrase a person would use maps onto no asserted class.
+        <code>ArchitecturalStructure</code> — 2,965 members, none asserted — is the one that means it.
+      </p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">probe · &quot;Eiffel Tower&quot;</span>
+          <button class="copy" type="button" aria-label="Copy query 5">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/ArchitecturalStructure&gt;</span>
+  <span class="kw">AND</span> <span class="kw">NEAR</span> <span class="var">?x</span>.dbpedia <span class="kw">TO</span> <span class="str">&quot;Eiffel Tower&quot;</span>
+  <span class="kw">LIMIT</span> <span class="num-t">8</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head stale">vector-literal run · 55.5 ms · re-measure pending</div>
+        <div class="rows">
+          <span class="t">Eiffel Tower</span><span class="s">1.000</span><span class="a">Building</span>
+          <span class="t">Tour Montparnasse</span><span class="s">0.547</span><span class="a">Building</span>
+          <span class="t">Tour Hekla</span><span class="s">0.542</span><span class="a">Building</span>
+          <span class="t">Hyatt Regency Paris Étoile</span><span class="s">0.520</span><span class="a">Building</span>
+          <span class="t">Élysée Palace</span><span class="s">0.492</span><span class="a">Building</span>
+          <span class="t">Grand Palais</span><span class="s">0.490</span><span class="a">Museum</span>
+        </div>
+      </div>
+
+      <p class="why">
+        The Grand Palais comes back asserted <code>Museum</code>, not <code>Building</code> — a class
+        a hand-written filter on <code>Building</code> would have missed, and the reasoner did not.
+      </p>
+    </article>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Reasoning only</h2>
+      <span class="section-note">three queries · no vectors</span>
+    </div>
+
+    <article class="spec">
+      <div class="spec-top">
+        <span class="num">06</span>
+        <span class="badge s">ontology</span>
+      </div>
+      <h3>One hop</h3>
+      <p class="claim">1,458 members, 0 asserted. <code>University ⊑ EducationalInstitution</code>.</p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">oxql</span>
+          <button class="copy" type="button" aria-label="Copy query 6">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/EducationalInstitution&gt;</span> <span class="kw">LIMIT</span> <span class="num-t">6</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head">returned · 0.68 ms</div>
+        <div class="rows">
+          <span class="t">Harvard University</span><span class="s"></span><span class="a">University</span>
+          <span class="t">Princeton University</span><span class="s"></span><span class="a">University</span>
+          <span class="t">University of Cambridge</span><span class="s"></span><span class="a">University</span>
+          <span class="t">University of Oxford</span><span class="s"></span><span class="a">University</span>
+          <span class="t">University of Vienna</span><span class="s"></span><span class="a">University</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="spec">
+      <div class="spec-top">
+        <span class="num">07</span>
+        <span class="badge s">ontology</span>
+      </div>
+      <h3>Two asserted classes, one answer</h3>
+      <p class="claim">
+        <code>River</code> and <code>Lake</code> both sit under <code>BodyOfWater</code>. 1,085
+        members, 0 asserted.
+      </p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">oxql</span>
+          <button class="copy" type="button" aria-label="Copy query 7">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/BodyOfWater&gt;</span> <span class="kw">LIMIT</span> <span class="num-t">8</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head">returned · 0.13 ms</div>
+        <div class="rows">
+          <span class="t">Amazon River</span><span class="s"></span><span class="a">River</span>
+          <span class="t">Danube</span><span class="s"></span><span class="a">River</span>
+          <span class="t">Ganges</span><span class="s"></span><span class="a">River</span>
+          <span class="t">Lake Ontario</span><span class="s"></span><span class="a">Lake</span>
+          <span class="t">Mississippi River</span><span class="s"></span><span class="a">River</span>
+          <span class="t">Nile</span><span class="s"></span><span class="a">River</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="spec">
+      <div class="spec-top">
+        <span class="num">08</span>
+        <span class="badge s">ontology</span>
+      </div>
+      <h3>The one that failed on <code>dbo:</code></h3>
+      <p class="claim">
+        1,063 members, 0 asserted. Spelled with a prefix it answers
+        <em>“unknown class: dbo:MeanOfTransportation”</em> — OxidDB has no prefix registry, so every
+        IRI goes in whole.
+      </p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">oxql</span>
+          <button class="copy" type="button" aria-label="Copy query 8">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code><span class="kw">FIND</span> <span class="var">?x</span> <span class="kw">WHERE</span> <span class="var">?x</span> <span class="kw">IS-A</span> <span class="iri">&lt;http://dbpedia.org/ontology/MeanOfTransportation&gt;</span> <span class="kw">LIMIT</span> <span class="num-t">6</span></code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head">returned · 0.16 ms</div>
+        <div class="rows">
+          <span class="t">Airbus A380</span><span class="s"></span><span class="a">Aircraft</span>
+          <span class="t">Boeing B-52 Stratofortress</span><span class="s"></span><span class="a">Aircraft</span>
+          <span class="t">Concorde</span><span class="s"></span><span class="a">Aircraft</span>
+          <span class="t">General Dynamics F-16 Fighting Falcon</span><span class="s"></span><span class="a">Aircraft</span>
+          <span class="t">Lockheed Martin F-22 Raptor</span><span class="s"></span><span class="a">Aircraft</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="spec">
+      <div class="spec-top">
+        <span class="num">+</span>
+        <span class="badge s">show the work</span>
+      </div>
+      <h3>One assertion in, five classes out</h3>
+      <p class="claim">
+        When someone asks where the answers come from, read a single individual back. IRIs in a URL
+        path must be percent-encoded.
+      </p>
+
+      <div class="code">
+        <div class="code-bar">
+          <span class="code-tag">shell</span>
+          <button class="copy" type="button" aria-label="Copy individual lookup">
+            <svg class="sheets" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="9" rx="1.5"/><path d="M10.5 3.5h-6a1.5 1.5 0 0 0-1.5 1.5v6"/></svg>
+            <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </div>
+<pre><code>curl -s -H "Authorization: Bearer $OXIDDB_API_KEY" \
+  "$OXIDDB_URL/individuals/http%3A%2F%2Fdbpedia.org%2Fresource%2FAlbert_Einstein" \
+  | python3 -m json.tool</code></pre>
+      </div>
+
+      <div class="out">
+        <div class="out-head">asserted → inferred</div>
+        <div class="rows">
+          <span class="t">classes</span><span class="s"></span><span class="a">Scientist</span>
+          <span class="t">inferred_classes</span><span class="s"></span><span class="a">Animal · Eukaryote · Person · Scientist · Species</span>
+        </div>
+      </div>
+
+      <p class="why">
+        <code>loader/oxd_oracle.py</code> checks that whole derivation offline against
+        <code>oxd hierarchy</code> and <code>oxd extents</code>, so what the reasoner claims is
+        differentially verified rather than taken on trust.
+      </p>
+    </article>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Five ways to write it wrong</h2>
+      <span class="section-note">OxQL 0.9.9</span>
+    </div>
+
+    <div class="pit">
+      <div class="pit-row">
+        <span class="bad">&lt;dbo:PopulatedPlace&gt;</span>
+        <span class="good">&lt;http://dbpedia.org/ontology/PopulatedPlace&gt;</span>
+        <p>No prefix registry. A prefixed name is read as a class IRI literally spelled that way, and you get <code>unknown class</code>.</p>
+      </div>
+      <div class="pit-row">
+        <span class="bad">?x.&lt;…/populationTotal&gt; &gt; 1000000</span>
+        <span class="good">?x.http://dbpedia.org/ontology/populationTotal &gt; 1000000</span>
+        <p>Angle brackets are accepted only after <code>IS-A</code>. On a property they are a parse error — and omitting them there is a parse error too. Two spellings in one query.</p>
+      </div>
+      <div class="pit-row">
+        <span class="bad">TO Albert Einstein</span>
+        <span class="good">TO &quot;Albert Einstein&quot;</span>
+        <p>The probe after <code>TO</code> is a string literal or a vector literal, nothing else. Unquoted text — or a shell placeholder that never got substituted — stops at <code>expected string_lit or vec_literal</code>.</p>
+      </div>
+      <div class="pit-row">
+        <span class="bad">TO [1.4e-2, …]</span>
+        <span class="good">TO [0.014000, …]</span>
+        <p>OxQL number literals take no exponent. Format every component as a plain decimal.</p>
+      </div>
+      <div class="pit-row">
+        <span class="bad">?x.…/almaMater = &lt;…/Harvard_University&gt;</span>
+        <span class="good">— not supported —</span>
+        <p>Object-property filters do not work in queries. The edges are stored and come back on <code>GET /individuals</code>, but the bracketed form is a parse error and the quoted form matches nothing. Don’t promise “physicists who studied at Harvard” as a single query.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Measured on oxid-dbpedia-ns t50 · OxidDB 0.9.9 · cosine, SQ8, cold-f32 · load 103 s at 487 entities/s ·
+    classify 0.19 s, coherent and consistent, 0 violations.
+  </footer>
+</div>
+
+<script>
+(function () {
+  function flash(btn, ok) {
+    var label = btn.querySelector('.copy-label');
+    var prev = label.getAttribute('data-prev') || label.textContent;
+    label.setAttribute('data-prev', prev);
+    if (ok) btn.classList.add('ok');
+    label.textContent = ok ? 'Copied' : 'Press ⌘C';
+    window.setTimeout(function () {
+      btn.classList.remove('ok');
+      label.textContent = prev;
+    }, 1600);
+  }
+
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  document.addEventListener('click', function (event) {
+    var btn = event.target.closest ? event.target.closest('.copy') : null;
+    if (!btn) return;
+    var panel = btn.closest('.code');
+    var code = panel && panel.querySelector('code');
+    if (!code) return;
+    var text = code.textContent.replace(/\s+$/, '');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { flash(btn, true); },
+        function () { flash(btn, legacyCopy(text)); }
+      );
+    } else {
+      flash(btn, legacyCopy(text));
+    }
+  });
+})();
+</script>
+</body>
+</html>

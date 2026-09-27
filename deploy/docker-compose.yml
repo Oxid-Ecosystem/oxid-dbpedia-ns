@@ -1,0 +1,36 @@
+# oxid-dbpedia-ns — the t50 demo box.
+#
+# This box NEVER loads data. It receives a finished database as a verified
+# backup bundle (see make-bundle.sh / restore.sh) and serves it read-mostly.
+#
+#   docker compose up -d
+#
+services:
+  oxid-db:
+    image: ${OXD_IMAGE:-moonlightarray/oxid-db:0.9.9}
+    container_name: oxid-t50
+    ports:
+      # Loopback only. The server runs PLAINTEXT, so nothing may reach it from
+      # the network; you reach it over an SSH tunnel:
+      #   ssh -N -L 7878:127.0.0.1:7878 -L 7880:127.0.0.1:7880 <user>@<host>
+      # Publishing to 127.0.0.1 (not 0.0.0.0) is also what stops Docker writing
+      # its own iptables rule past the host firewall.
+      - "127.0.0.1:${OXD_PORT:-7878}:7878"
+      - "127.0.0.1:${OXD_UI_PORT:-7880}:7880"
+    volumes:
+      - oxid-t50-data:/app/data
+    environment:
+      # Legacy auth mode: a single bearer token, holder treated as admin. Fine
+      # while the port stays on loopback and you are the only client. Going
+      # public means users mode + [server.tls] instead — see provision.md.
+      - OXD_API_TOKEN=${OXD_API_TOKEN:?set OXD_API_TOKEN in deploy/.env}
+    # t50 sits at ~402 MiB resident once restarted. The server's own memory
+    # governor misreports (38 MB observed while the process held 773 MiB), so
+    # its HTTP 507 admission control will not save the box — this hard limit
+    # and the host swap file are the actual backstop.
+    mem_limit: 1200m
+    restart: unless-stopped
+    stop_grace_period: 45s
+
+volumes:
+  oxid-t50-data:

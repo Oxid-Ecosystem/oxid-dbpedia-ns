@@ -1,0 +1,50 @@
+cff-version: 1.2.0
+message: "If you use this dataset or the pipeline that builds it, please cite it as below."
+title: "OxidDB Neurosymbolic DBpedia Dataset"
+abstract: >-
+  Three nested tiers (50K, 100K, 180K) of internationally known Western European and American
+  DBpedia entities. Every entity carries its DBpedia IRI, title, English abstract, most-specific
+  DBpedia Ontology type, whitelisted properties, resolved countries, notability signals and a
+  1536-dimensional text-embedding-3-small vector, all keyed on the same IRI. Each tier also ships
+  an OWL 2 EL TBox and an N-Triples ABox, so the same data loads into a reasoner and a vector
+  store. Built for demos and benchmarks of engines that combine vector search with ontology
+  reasoning.
+type: dataset
+authors:
+  - family-names: Brand
+    given-names: Vince
+    affiliation: Moonlight Array
+version: 0.1.0
+date-released: "2026-09-27"
+license:
+  - Apache-2.0
+  - CC-BY-SA-4.0
+license-url: "https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns#licenses"
+url: "https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns"
+repository-code: "https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns"
+contact:
+  - name: Moonlight Array
+    email: info@moonlightarray.nl
+keywords:
+  - dbpedia
+  - knowledge-graph
+  - owl
+  - owl-2-el
+  - description-logic
+  - embeddings
+  - neurosymbolic
+  - vector-search
+  - benchmark
+references:
+  - type: database
+    title: "DBpedia snapshot 2022.12.01"
+    url: "https://databus.dbpedia.org/dbpedia/snapshot"
+    notes: "Source of IRIs, abstracts, types, properties and object-property edges. CC BY-SA 4.0."
+  - type: database
+    title: "DBpedia Archivo: DBpedia Ontology 2024.08.01"
+    url: "https://archivo.dbpedia.org/info?o=http://dbpedia.org/ontology/"
+    notes: "Source of the TBox, restricted here to OWL 2 EL."
+  - type: database
+    title: "Wikimedia pageview_complete dumps"
+    url: "https://dumps.wikimedia.org/other/pageview_complete/"
+    notes: "Twelve months of pageviews, one of the two notability signals."

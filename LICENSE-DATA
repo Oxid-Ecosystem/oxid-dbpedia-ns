@@ -1,0 +1,28 @@
+Dataset license: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+This license applies to the DATASET produced by this pipeline (the contents of
+out/: entities.parquet, edges.parquet, abox.nt, tbox.owl, tbox_removed.owl,
+types_inferred.parquet, manifest.json and the dataset card), because the titles,
+abstracts, types and properties derive from DBpedia and Wikipedia, which are
+themselves released under CC BY-SA. The pipeline CODE in this repository is
+licensed separately under the Apache License 2.0 (see LICENSE).
+
+Full license text: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+Human-readable summary: https://creativecommons.org/licenses/by-sa/4.0/
+
+You are free to share and adapt the dataset for any purpose, including
+commercially, provided that you give appropriate credit (see ATTRIBUTION.md in
+every tier directory), indicate if changes were made, and distribute any
+derivative under the same license.
+
+Source attribution:
+- DBpedia (https://www.dbpedia.org/), CC BY-SA 3.0 / 4.0. Snapshot release and
+  file checksums are recorded in each tier's manifest.json.
+- Wikipedia (https://www.wikipedia.org/), CC BY-SA 4.0, via DBpedia's extraction.
+- Wikimedia pageview dumps (https://dumps.wikimedia.org/other/pageview_complete/),
+  CC0. Only the derived notability score is distributed.
+- Vector embeddings were generated with OpenAI text-embedding-3-small and ship
+  as part of the dataset under this license.
+
+This file is not legal advice. Confirm the license with someone qualified
+before a public release.

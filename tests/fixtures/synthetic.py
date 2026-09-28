@@ -501,7 +501,10 @@ def write_test_config(
 
     text = (repo_root / "config.toml").read_text(encoding="utf-8")
     cfg = tomllib.loads(text)
-    tiers = tiers or [50, 100, 200]
+    # Deliberately not 50/100/200: those were the historical tier sizes, so a value hardcoded in
+    # the pipeline would match the fixture by accident and the test would pass on a real bug. It
+    # did exactly that once, and the dataset card shipped naming a `t200` tier that never existed.
+    tiers = tiers or [40, 90, 150]
     text = text.replace(f"tiers = {cfg['dataset']['tiers']}", f"tiers = {tiers}")
     for key, path in fixture_files.items():
         if key in ("pageview_template", "months"):

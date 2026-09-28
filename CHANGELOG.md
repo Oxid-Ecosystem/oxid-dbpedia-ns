@@ -14,12 +14,15 @@ First public release. Pipeline and dataset built and verified on 2026-09-19.
 - 168,646 object-property edges in `t180` with both endpoints inside the tier.
 - 1536-dimensional `text-embedding-3-small` vectors over `title + "\n" + abstract`, generated
   through the OpenAI Batch API: 19.1M tokens, USD 0.19 measured.
-- OWL 2 EL TBox per tier (788 DBO classes) in RDF/XML, Turtle and N-Triples, with the 30 functional
+- OWL 2 EL TBox per tier (788 declared DBO classes, 789 hierarchy nodes, 2,215 subsumption pairs)
+  in RDF/XML, Turtle and N-Triples, with the 30 functional
   property axioms removed for EL compliance shipped separately in `tbox_removed.owl`.
 - `types_inferred.parquet`: the subclass closure of the asserted types, as a reasoner oracle.
 - OxidDB line import format (`oxid_tbox.txt`, `oxid_abox.txt`) alongside the standard serialisations.
 - Every tier carries a `manifest.json` pinning source URLs and SHA-256 hashes, the config hash, the
-  embedding run and per-file hashes, plus an `ATTRIBUTION.md`.
+  embedding run, per-file hashes and the TBox counts, plus an `ATTRIBUTION.md`.
+- The dataset card documents every column of `entities.parquet` with its real dtype and meaning,
+  generated from the frame's schema so a new column cannot ship undocumented.
 
 ### Sources
 

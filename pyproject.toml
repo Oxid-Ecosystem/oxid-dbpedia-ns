@@ -1,11 +1,20 @@
 [project]
 name = "oxid-dbpedia-ns"
 version = "0.1.0"
-description = "Build pipeline for the OxidDB neurosymbolic DBpedia dataset: nested 50K/100K/200K tiers of Western European and American entities with abstracts, DBO types, typed edges and text-embedding-3-small vectors."
+description = "Build pipeline for the OxidDB neurosymbolic DBpedia dataset: nested 50K/100K/180K tiers of Western European and American entities with abstracts, DBO types, typed edges, an OWL 2 EL TBox and text-embedding-3-small vectors."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [{ name = "Moonlight Array", email = "info@moonlightarray.nl" }]
+keywords = ["dbpedia", "knowledge-graph", "owl", "embeddings", "neurosymbolic", "vector-search", "dataset"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Database",
+]
 dependencies = [
     "polars>=1.10",
     "pyarrow>=17",

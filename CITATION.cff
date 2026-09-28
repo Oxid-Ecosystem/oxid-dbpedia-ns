@@ -38,13 +38,19 @@ keywords:
 references:
   - type: database
     title: "DBpedia snapshot 2022.12.01"
+    authors:
+      - name: "DBpedia Association"
     url: "https://databus.dbpedia.org/dbpedia/snapshot"
     notes: "Source of IRIs, abstracts, types, properties and object-property edges. CC BY-SA 4.0."
   - type: database
-    title: "DBpedia Archivo: DBpedia Ontology 2024.08.01"
+    title: "DBpedia Ontology 2024.08.01, via DBpedia Archivo"
+    authors:
+      - name: "DBpedia Association"
     url: "https://archivo.dbpedia.org/info?o=http://dbpedia.org/ontology/"
     notes: "Source of the TBox, restricted here to OWL 2 EL."
   - type: database
     title: "Wikimedia pageview_complete dumps"
+    authors:
+      - name: "Wikimedia Foundation"
     url: "https://dumps.wikimedia.org/other/pageview_complete/"
     notes: "Twelve months of pageviews, one of the two notability signals."

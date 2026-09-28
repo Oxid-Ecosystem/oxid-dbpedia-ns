@@ -16,6 +16,8 @@ from rdflib import Graph
 from rdflib.namespace import OWL, RDF
 
 from ..config import Config
+from ..iri import DBO
+from ..ontology import hierarchy_from_graph
 from ..util import log, sha256_file, write_json
 from .emit import tier_dir
 
@@ -93,8 +95,29 @@ def run(cfg: Config, force: bool = False) -> bool:
         rep.check(
             f"{dirs[t].name}: asserted types exist in tbox.owl", not missing, f"missing {sorted(missing)[:5]}"
         )
-        # Manifest checksums.
+        # The TBox counts quoted in the docs are recounted from the shipped file, so a manifest
+        # can never drift from the bytes it describes. hierarchy_from_graph also reaches classes
+        # that DBO mentions only through an equivalence, so it is >= the declared count.
         manifest = json.loads((dirs[t] / "manifest.json").read_text())
+        tb = manifest["tbox"]
+        hierarchy = hierarchy_from_graph(tbox)
+        recount = {
+            "classes_declared": len({c for c in classes if c.startswith(DBO)}),
+            "hierarchy_nodes": len(hierarchy.classes),
+            "subsumptions": sum(
+                1
+                for c in hierarchy.classes
+                for a in hierarchy.ancestors(c)
+                if a not in (str(OWL.Thing), DBO + "Thing")
+            ),
+        }
+        drifted = {k: (tb.get(k), v) for k, v in recount.items() if tb.get(k) != v}
+        rep.check(f"{dirs[t].name}: manifest tbox counts match tbox.owl", not drifted, f"{drifted}")
+        rep.check(
+            f"{dirs[t].name}: hierarchy_nodes >= classes_declared",
+            recount["hierarchy_nodes"] >= recount["classes_declared"],
+            f"{recount['hierarchy_nodes']} vs {recount['classes_declared']}",
+        )
         mismatched = [
             n for n, info in manifest["files"].items() if sha256_file(dirs[t] / n) != info["sha256"]
         ]

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How the dataset was designed
+    url: https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns/blob/main/docs/briefing.md
+    about: Every selection, ranking and ontology decision, with the reasoning. Read before asking why.
+  - name: DBpedia itself
+    url: https://www.dbpedia.org/resources/
+    about: For facts that are wrong in DBpedia upstream rather than in this pipeline.

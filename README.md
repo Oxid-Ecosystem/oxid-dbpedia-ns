@@ -1,5 +1,10 @@
 # oxid-dbpedia-ns
 
+[![ci](https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns/actions/workflows/ci.yml/badge.svg)](https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns/actions/workflows/ci.yml)
+[![code: Apache 2.0](https://img.shields.io/badge/code-Apache%202.0-blue.svg)](LICENSE)
+[![data: CC BY-SA 4.0](https://img.shields.io/badge/data-CC%20BY--SA%204.0-blue.svg)](LICENSE-DATA)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
+
 Build pipeline for the **OxidDB Neurosymbolic DBpedia Dataset**: three nested tiers (50K, 100K,
 180K) of internationally known Western European and American entities from DBpedia. Every entity
 carries its DBpedia IRI, title, English abstract, most-specific DBpedia Ontology (DBO) type,
@@ -11,10 +16,18 @@ The dataset is meant for demos and benchmarks of engines that combine vector sea
 ontology reasoning. The tiers exist to compare load time, index build time, query latency,
 memory and cost across three sizes of the same data.
 
-- Design and every decision: [docs/briefing.md](docs/briefing.md)
-- Planned v2 (no exclusions, tiers 1M/2.5M/full, benchmark workload): [docs/briefing-v2.md](docs/briefing-v2.md) — plan only, not executed; v1 `0.1.0` below is what is built and in use.
-- Licenses: dataset CC BY-SA 4.0, pipeline code Apache 2.0 — see [Licenses](#licenses).
-- Publishing the tiers to Hugging Face and Kaggle: [docs/publishing.md](docs/publishing.md).
+| | |
+| --- | --- |
+| **Design and every decision** | [docs/briefing.md](docs/briefing.md) |
+| **Release runbook** | [docs/publishing.md](docs/publishing.md) |
+| **What changed** | [CHANGELOG.md](CHANGELOG.md) |
+| **How to contribute** | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| **Licenses** | code Apache 2.0, data CC BY-SA 4.0 — see [Licenses](#licenses) |
+
+> **Scope, stated plainly.** This is a curated benchmark and demo corpus, not a representative
+> sample of DBpedia: 21 class buckets, 20 Western European countries plus the United States, and a
+> notability floor. [docs/briefing-v2.md](docs/briefing-v2.md) plans a version without those
+> exclusions; it is **not built**. `0.1.0` described below is what exists.
 
 ## Quick start
 
@@ -68,7 +81,7 @@ out/t180/
                           countries, props (struct), score, views, languages, vector (float32[1536])
   edges.parquet           s, p, o object-property edges with both endpoints in the tier
   abox.nt                 rdf:type, rdfs:label, literals and edges as N-Triples
-  tbox.owl / .ttl / .nt   DBO restricted to OWL 2 EL, cleaned of DBO artefacts (788 classes)
+  tbox.owl / .ttl / .nt   DBO restricted to OWL 2 EL, cleaned of DBO artefacts (788 declared classes)
   tbox_removed.owl        the axioms stripped for EL compliance (30 functional-property axioms in DBO 2024.08)
   types_inferred.parquet  subclass closure of the asserted types: the oracle for a reasoner's classification
   oxid_tbox.txt           OxidDB import lines: SUBCLASS
@@ -96,7 +109,7 @@ every tier's manifest.
 | DBpedia downloads | 1.9 GB compressed | minutes | free |
 | Pageview dumps | 12 x 5.6 GB, deleted after aggregation | hours (bzip2 bound; `brew install lbzip2` helps) | free |
 | Parsing to Parquet | ~15 GB in `cache/` | tens of minutes | free |
-| Embeddings, 180K entities | 19.1M tokens (measured: 95-105 tokens per entity) | minutes to hours (Batch API) | $0.19 measured via Batch at $0.01 per 1M tokens; $0.38 at the standard rate |
+| Embeddings, 180K entities | 19,139,607 tokens (measured: 106 per entity) | minutes to hours (Batch API) | $0.19 measured via Batch at $0.01 per 1M tokens; $0.38 at the standard rate |
 
 Disk: budget 40 GB for `cache/` if the pageview files are kept, 15 GB otherwise.
 
@@ -196,6 +209,9 @@ Cite it with [CITATION.cff](CITATION.cff); GitHub renders a "Cite this repositor
 ## Tests
 
 `make test` runs the unit tests (IRI normalisation, N-Triples parsing, ontology closure and bucket
-assignment, the EL filter, the quota interleave) and then builds tiers of 50/100/200 entities from a
-synthetic DBpedia-shaped fixture through all seven stages with the fake embedder, including the
-full validation stage.
+assignment, the EL filter, the quota interleave) and then builds three small tiers from a synthetic
+DBpedia-shaped fixture through all seven stages with the fake embedder, including the full
+validation stage. It needs no network and no API key.
+
+The fixture's tier sizes are deliberately unlike the real ones: a value hardcoded in the pipeline
+would otherwise match the fixture by coincidence and a test would pass on a real bug.

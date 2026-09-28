@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+from itertools import pairwise
 
 import polars as pl
 from rdflib import Graph
@@ -148,3 +150,48 @@ def test_edges_are_inside_tier_and_grow(built):
         assert set(edges["s"]) <= ents and set(edges["o"]) <= ents
         sizes.append(edges.height)
     assert sizes == sorted(sizes)
+
+
+def test_dataset_card_documents_every_column(built):
+    """The card is the only documentation most users will read, so it must describe the real frame.
+
+    Written after a refactor silently reduced this section to a bare sentence fragment.
+    """
+    cfg = built["cfg"]
+    card = (cfg.out / "README.md").read_text()
+    schema = pl.scan_parquet(tier_dir(cfg, sorted(cfg.tiers)[0]) / "entities.parquet").collect_schema()
+
+    assert "## entities.parquet" in card
+    for column in schema:
+        assert f"| `{column}` |" in card, f"{column} missing from the card's data dictionary"
+    assert "**undocumented**" not in card, "a column has no COLUMN_DOCS entry"
+
+
+def test_dataset_card_states_the_nesting_rule(built):
+    """The nesting sentence must be derived, not typed.
+
+    It once read "everything in `t100` is in `t200`" long after the top tier was capped at 180K,
+    on the card that ships to Hugging Face and Kaggle.
+    """
+    cfg = built["cfg"]
+    card = (cfg.out / "README.md").read_text()
+    names = [tier_dir(cfg, t).name for t in sorted(cfg.tiers)]
+
+    assert "Tiers are strict prefixes" in card
+    for smaller, bigger in pairwise(names):
+        assert f"everything in `{smaller}` is in `{bigger}`" in card
+
+    sentence = card.split("Tiers are strict prefixes", 1)[1].split("##", 1)[0]
+    named = set(re.findall(r"`(t\d+)`", sentence))
+    assert named <= set(names), f"card names tiers that do not exist: {sorted(named - set(names))}"
+
+
+def test_manifest_records_the_tbox_counts(built):
+    """The numbers quoted in the docs come from here, not from someone's memory."""
+    cfg = built["cfg"]
+    for tier in cfg.tiers:
+        manifest = json.loads((tier_dir(cfg, tier) / "manifest.json").read_text())
+        tbox = manifest["tbox"]
+        assert tbox["classes_declared"] > 0
+        assert tbox["hierarchy_nodes"] >= tbox["classes_declared"]
+        assert tbox["subsumptions"] >= 0

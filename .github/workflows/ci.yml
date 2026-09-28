@@ -1,14 +1,56 @@
 name: ci
+
 on:
   push:
   pull_request:
+
+# The whole job is read-only: it lints, tests and never touches the repository or a registry.
+permissions:
+  contents: read
+
+# A new push supersedes the run it interrupted.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
       - run: uv sync --extra dev
-      - run: uv run ruff check oxid_dbpedia_ns tests loader publish
-      - run: uv run ruff format --check oxid_dbpedia_ns tests loader publish
-      - run: uv run pytest -q
+      - name: Lint
+        run: |
+          uv run ruff check oxid_dbpedia_ns tests loader publish
+          uv run ruff format --check oxid_dbpedia_ns tests loader publish
+      - name: Tests and synthetic end-to-end build
+        run: uv run pytest -q
+
+  metadata:
+    # The citation file and the dataset card frontmatter are what other people's tooling reads.
+    # Neither is exercised by the tests, and both fail silently when malformed.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: CITATION.cff is valid
+        run: |
+          uv run --with cffconvert cffconvert --validate -i CITATION.cff
+      - name: Version is consistent across pyproject, CITATION.cff and CHANGELOG
+        run: |
+          uv run --with tomli --with pyyaml python - <<'PY'
+          import re, sys, tomli, yaml
+
+          pyproject = tomli.load(open("pyproject.toml", "rb"))["project"]["version"]
+          citation = yaml.safe_load(open("CITATION.cff"))["version"]
+          changelog = re.search(r"^## (\d+\.\d+\.\d+)", open("CHANGELOG.md").read(), re.M)
+          changelog = changelog.group(1) if changelog else None
+
+          found = {"pyproject.toml": pyproject, "CITATION.cff": str(citation), "CHANGELOG.md": changelog}
+          print(found)
+          if len(set(found.values())) != 1:
+              sys.exit(f"version mismatch: {found}")
+          PY

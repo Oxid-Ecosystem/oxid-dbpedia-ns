@@ -1,0 +1,41 @@
+name: Pipeline bug
+description: A stage crashes, produces the wrong output, or will not reproduce
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Stage
+      options:
+        - "1 acquire"
+        - "2 candidates"
+        - "3 geography"
+        - "4 rank"
+        - "5 enrich + embed"
+        - "6 emit"
+        - "7 validate"
+        - "loader"
+        - "publish"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and output
+      description: The exact command, and the error or the wrong result. Paste the log.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Python and OS
+      placeholder: "3.12.7, macOS 15.5 arm64"
+    validations:
+      required: true
+  - type: checkboxes
+    id: tests
+    attributes:
+      label: Does `make test` pass?
+      options:
+        - label: "`make test` passes on my machine (the synthetic build, no network or API key needed)"

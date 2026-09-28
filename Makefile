@@ -2,7 +2,13 @@
 PY := .venv/bin/python
 CLI := .venv/bin/oxid-dbpedia-ns
 
-.PHONY: env test lint acquire candidates geography rank enrich emit validate all cost load bundle \
+.DEFAULT_GOAL := help
+
+help:           ## show this help
+	@grep -hE '^[a-z][a-zA-Z_-]*:.*?##' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: help env test lint acquire candidates geography rank enrich emit validate all cost load bundle \
         preflight publish-hf publish-kaggle clean-work clean-out
 
 env:            ## create .venv and install the package with dev extras
@@ -11,11 +17,11 @@ env:            ## create .venv and install the package with dev extras
 test: env       ## run the unit tests and the synthetic end-to-end build
 	$(PY) -m pytest -q
 
-lint: env
+lint: env       ## ruff check and format --check over every package
 	.venv/bin/ruff check oxid_dbpedia_ns tests loader publish
 	.venv/bin/ruff format --check oxid_dbpedia_ns tests loader publish
 
-acquire candidates geography rank enrich emit validate: env
+acquire candidates geography rank enrich emit validate: env  ## run one stage by name
 	$(CLI) $@
 
 all: env        ## run every stage in order
@@ -44,5 +50,5 @@ publish-kaggle: ## upload out/ to Kaggle Datasets (plan only; add ARGS="--yes --
 clean-work:     ## drop per-stage outputs (keeps downloads and vectors)
 	rm -rf work/candidates* work/geo* work/languages* work/ranked* work/preflight.json work/rank_report.json work/enriched* work/edges_top* work/embedding_manifest.json
 
-clean-out:
+clean-out:      ## delete the emitted tiers in out/
 	rm -rf out

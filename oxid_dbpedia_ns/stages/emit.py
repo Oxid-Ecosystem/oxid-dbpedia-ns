@@ -20,10 +20,13 @@ from __future__ import annotations
 import re
 import shutil
 from datetime import UTC, datetime
+from itertools import pairwise
 from pathlib import Path
+from textwrap import fill
 
 import polars as pl
-from rdflib import Graph
+from rdflib import Graph, URIRef
+from rdflib.namespace import OWL, RDF
 
 from .. import __version__
 from ..config import Config
@@ -143,13 +146,92 @@ def attribution_text(cfg: Config, sources: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def dataset_card(cfg: Config, manifests: list[dict]) -> str:
+# What each column of entities.parquet means. The card renders these against the frame's real
+# schema, so a column added to the pipeline without a line here shows up undocumented rather than
+# silently missing from the dataset card.
+COLUMN_DOCS: dict[str, str] = {
+    "iri": "DBpedia IRI, the primary key. Unique within a tier and stable across tiers.",
+    "rank": "Position in the notability ranking, 1-based. Dense and gapless: tier N holds ranks 1..N.",
+    "tier_min": "Smallest tier containing this entity, as a row count. Filter on it to "
+    "reconstruct a smaller tier from a larger one.",
+    "title": "Wikipedia page title, underscores resolved to spaces.",
+    "abstract": "English short abstract from DBpedia. Never empty: having one is a selection criterion.",
+    "embed_text": 'Exactly `title + "\\n" + abstract`. The literal input that produced `vector`.',
+    "bucket": "Class bucket the entity was selected under; the buckets are listed in config.toml.",
+    "group": "Coarser grouping over buckets (person, place, organisation, work, ...).",
+    "types": "Asserted DBO classes, most specific first. Never empty. Their subclass closure is "
+    "types_inferred.parquet.",
+    "countries": "Modern countries the entity resolves to, via data/country_map.csv. May be empty "
+    "for entities kept on the language-count rule rather than a country match.",
+    "props": "Whitelisted DBpedia properties as a typed struct. Every field is nullable and most "
+    "are null for most entities: DBpedia populates them unevenly.",
+    "score": "Notability score, the weighted z-score given under 'How it was built', computed "
+    "within the bucket. Comparable within a bucket, not across buckets.",
+    "views": "Wikipedia pageviews over the twelve months in sources.lock.json. At least the "
+    "configured floor.",
+    "languages": "Number of Wikipedia language editions with an article, from the Wikidata sameAs "
+    "links. At least the configured floor.",
+    "vector": "The embedding of embed_text, model and dimensions as given above. Not normalised; "
+    "use cosine similarity.",
+}
+
+
+def column_table(schema: pl.Schema) -> str:
+    """Render the data dictionary against the frame's actual dtypes."""
+    lines = ["| Column | Type | Meaning |", "| --- | --- | --- |"]
+    for name, dtype in schema.items():
+        pretty = str(dtype)
+        if pretty.startswith("Struct"):  # the full struct definition is unreadable in a table
+            pretty = f"Struct, {len(dtype.fields)} fields"
+        lines.append(f"| `{name}` | {pretty} | {COLUMN_DOCS.get(name, '**undocumented**')} |")
+    return "\n".join(lines)
+
+
+def tbox_counts(kept: Graph, hierarchy) -> dict[str, int]:
+    """The three numbers people quote about the TBox, counted once and written to every manifest.
+
+    `classes_declared` is what an importer sees (OxidDB reports the same figure); `hierarchy_nodes`
+    is that plus any class DBO only ever mentions through an equivalence or a subclass edge without
+    declaring it -- dbo:Location, reached solely via `dbo:Place owl:equivalentClass dbo:Location`,
+    is the one such case in DBO 2024.08. `subsumptions` counts the same (class, ancestor) pairs
+    loader/oxd_oracle.py compares against `oxd hierarchy`, owl:Thing excluded.
+    """
+    declared = {
+        str(c) for c in kept.subjects(RDF.type, OWL.Class) if isinstance(c, URIRef) and str(c).startswith(DBO)
+    }
+    thing = str(OWL.Thing)
+    return {
+        "classes_declared": len(declared),
+        "hierarchy_nodes": len(hierarchy.classes),
+        "subsumptions": sum(
+            1 for c in hierarchy.classes for a in hierarchy.ancestors(c) if a not in (thing, DBO + "Thing")
+        ),
+    }
+
+
+def dataset_card(cfg: Config, manifests: list[dict], schema: pl.Schema) -> str:
     d = cfg["dataset"]
+    names = [m["tier_name"] for m in manifests]
+    nesting = fill(
+        "Tiers are strict prefixes of one notability-ranked list: "
+        + ", and ".join(f"everything in `{a}` is in `{b}`" for a, b in pairwise(names))
+        + ", with identical ranks and byte-identical vectors. So "
+        f"`{names[0]}` is the first {manifests[0]['counts']['entities']:,} rows of `{names[-1]}`, "
+        f"and filtering `{names[-1]}` on `tier_min` reconstructs any smaller tier exactly.",
+        width=98,
+    )
     rows = "\n".join(
         f"| {m['tier_name']} | {m['counts']['entities']:,} | {m['counts']['edges']:,} | {m['size_bytes'] / 1e9:.2f} GB |"
         for m in manifests
     )
     emb = manifests[-1]["embedding"] if manifests else {}
+    # Bound here so the prose below cannot drift from config.toml.
+    n_countries = len(cfg["geography"]["countries"])
+    floor_views = cfg["ranking"]["floor_views"]
+    floor_languages = cfg["ranking"]["floor_languages"]
+    snapshot = cfg["sources"]["databus_snapshot"]
+    version = d["version"]
+    year = (manifests[-1]["created_at"][:4]) if manifests else ""
     return f"""---
 license: cc-by-sa-4.0
 language:
@@ -184,14 +266,20 @@ loads into a reasoner as well as a vector store.
 | --- | --- | --- | --- |
 {rows}
 
-Tiers are strict prefixes of one notability-ranked list: everything in `t50` is in `t100`, and
-everything in `t100` is in `t200`, with identical ranks and byte-identical vectors.
+{nesting}
 
-## Files per tier
+## entities.parquet
+
+{column_table(schema)}
+
+`embed_text` is exactly `title + "\\n" + abstract`, the input that produced `vector`, so anyone can
+reproduce or extend the vectors with the same model. `props` is a struct of whitelisted DBpedia
+properties; every field is nullable.
+
+## Other files per tier
 
 | File | Contents |
 | --- | --- |
-| `entities.parquet` | `iri`, `rank`, `tier_min`, `title`, `abstract`, `embed_text`, `bucket`, `group`, `types`, `countries`, `props`, `score`, `views`, `languages`, `vector` |
 | `edges.parquet` | `s`, `p`, `o` object-property edges between entities of the tier |
 | `abox.nt` | `rdf:type`, `rdfs:label`, literals and edges as N-Triples |
 | `tbox.owl`, `tbox.ttl`, `tbox.nt` | DBO restricted to OWL 2 EL (RDF/XML, Turtle, N-Triples) |
@@ -200,9 +288,6 @@ everything in `t100` is in `t200`, with identical ranks and byte-identical vecto
 | `oxid_tbox.txt`, `oxid_abox.txt` | OxidDB line import format |
 | `manifest.json` | pinned sources, checksums, counts, embedding run |
 | `ATTRIBUTION.md` | credits and source files |
-
-`embed_text` is exactly `title + "\\n" + abstract`, the input that produced `vector`, so anyone can
-reproduce or extend the vectors with the same model.
 
 ## How it was built
 
@@ -214,6 +299,65 @@ one of {len(cfg["geography"]["countries"])} Western European countries or the Un
 within each bucket, with a floor of {cfg["ranking"]["floor_views"]:,} yearly pageviews and
 {cfg["ranking"]["floor_languages"]} Wikipedia editions, and a quota-preserving interleave across buckets.
 Pipeline source: https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns
+
+## What it is for
+
+Built to exercise engines that do vector search **and** ontology reasoning over the same data:
+nearest-neighbour queries scoped by an inferred class, classification against a known-good oracle,
+and load/index/query measurements at three sizes of an otherwise identical corpus. `types_inferred.parquet`
+is the reasoner oracle; the tiers are the size axis.
+
+It is **not** a representative sample of DBpedia, and results on it do not generalise to one.
+Selection is deliberately narrow and demo-driven — see the limits below before using it as an
+ANN benchmark, a knowledge-graph completion benchmark, or training data.
+
+## Limitations and bias
+
+- **Geography.** Only entities resolving to one of the {n_countries} Western European countries or
+  the United States survive the filter. Everywhere else is absent by construction, and the country
+  distribution is skewed towards the United States and the United Kingdom.
+- **Notability floor.** An entity needs at least {floor_views:,} yearly pageviews and
+  {floor_languages} Wikipedia editions. This is a fame filter: it removes the long tail that makes
+  entity linking and retrieval hard, so the corpus is easier than the real world.
+- **Bucket quotas are not all met.** Several buckets cannot fill their quota above the floor, so
+  the realised class distribution differs from the configured one. Per-bucket counts are in each
+  manifest under `counts.per_bucket`.
+- **Inherited bias.** DBpedia derives from Wikipedia, whose coverage and framing of people, places
+  and events is uneven by gender, geography and language. Nothing here corrects that; the pipeline
+  passes the source through and a filter on fame amplifies it.
+- **English only, and frozen in time.** Abstracts are English. The snapshot is
+  `{snapshot}`, so facts are as of that release, not today.
+- **Vectors are a single model.** One embedding model at one point in time. `embed_text` is
+  shipped so you can re-embed with your own.
+
+## Personal and sensitive information
+
+The tiers contain biographical facts about real people, including living ones: names, birth and
+death dates, birthplaces, nationalities, affiliations and abstracts. All of it is already published
+by Wikipedia and DBpedia under CC BY-SA, and the notability floor means the people here are public
+figures rather than private individuals. Nothing was inferred, enriched or joined from any other
+source.
+
+If you are the subject of an entry and want it corrected, the fix belongs upstream in Wikipedia and
+DBpedia — this dataset is a filtered copy. To have an entity removed from a future release, open an
+issue or write to the contact in the repository.
+
+## Citation
+
+`CITATION.cff` in the repository is the machine-readable form. In BibTeX:
+
+```bibtex
+@misc{{oxid_dbpedia_ns,
+  title  = {{OxidDB Neurosymbolic DBpedia Dataset}},
+  author = {{Brand, Vince}},
+  year   = {{{year}}},
+  version = {{{version}}},
+  url    = {{https://github.com/Oxid-Ecosystem/oxid-dbpedia-ns}}
+}}
+```
+
+Please also cite DBpedia and Wikipedia; `ATTRIBUTION.md` in each tier lists the exact source files
+and their hashes.
 
 ## License
 
@@ -245,8 +389,13 @@ def run(cfg: Config, force: bool = False) -> None:
         kept, removed, el_stats = el_filter(g)
         el_stats = {**el_stats, "cleaned": clean_stats}
         hierarchy = hierarchy_from_graph(kept)
+        el_stats = {**el_stats, **tbox_counts(kept, hierarchy)}
         log.info(
-            "[6] TBox: %d triples kept, %d removed", el_stats["kept_triples"], el_stats["removed_triples"]
+            "[6] TBox: %d triples kept, %d removed, %d classes declared, %d subsumptions",
+            el_stats["kept_triples"],
+            el_stats["removed_triples"],
+            el_stats["classes_declared"],
+            el_stats["subsumptions"],
         )
 
     enriched = pl.read_parquet(cfg.work / "enriched.parquet")
@@ -331,5 +480,7 @@ def run(cfg: Config, force: bool = False) -> None:
                 manifest["size_bytes"] / 1e9,
             )
 
-    (cfg.out / "README.md").write_text(dataset_card(cfg, manifests), encoding="utf-8")
+    (cfg.out / "README.md").write_text(
+        dataset_card(cfg, manifests, enriched.collect_schema()), encoding="utf-8"
+    )
     shutil.copyfile(cfg.root / "LICENSE-DATA", cfg.out / "LICENSE")

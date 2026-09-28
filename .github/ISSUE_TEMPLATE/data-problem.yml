@@ -1,0 +1,47 @@
+name: Data problem
+description: A wrong, missing or surprising value in a published tier
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The pipeline passes DBpedia through rather than correcting it, so an upstream error gets
+        documented instead of patched. That is still worth reporting — it tells us what to note in
+        the dataset card, and sometimes the fault turns out to be ours after all.
+  - type: input
+    id: iri
+    attributes:
+      label: Entity IRI
+      placeholder: http://dbpedia.org/resource/Eiffel_Tower
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier
+      options: ["t50", "t100", "t180", "all of them"]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Dataset version
+      description: The `dataset.version` field in that tier's manifest.json.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What is wrong
+      description: The column or file, the value you see, and the value you expected.
+    validations:
+      required: true
+  - type: dropdown
+    id: upstream
+    attributes:
+      label: Does DBpedia itself have this value?
+      description: Check https://dbpedia.org/page/<name>. If it does, this is an upstream fact.
+      options: ["Yes, DBpedia has it too", "No, the pipeline introduced it", "Not sure"]
+    validations:
+      required: true

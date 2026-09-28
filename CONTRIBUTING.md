@@ -18,12 +18,13 @@ DBpedia-shaped tree and the embedder is the deterministic fake one.
 ## Before you open a pull request
 
 ```bash
-uv run ruff check oxid_dbpedia_ns tests loader
-uv run ruff format --check oxid_dbpedia_ns tests loader
-uv run pytest -q
+make lint      # ruff check + ruff format --check over every package
+make test      # unit tests and the synthetic end-to-end build
 ```
 
-CI runs exactly those three commands, so a green local run is a green PR.
+CI runs exactly those, plus two metadata checks: `CITATION.cff` must validate against CFF 1.2.0,
+and the version must be identical in `pyproject.toml`, `CITATION.cff` and `CHANGELOG.md`. `make`
+with no target lists every target.
 
 ## What a change should come with
 
@@ -37,6 +38,13 @@ CI runs exactly those three commands, so a green local run is a green PR.
 - **A change to emitted files** (`stages/emit.py`, the OxidDB line format, the TBox cleaning): the
   validation stage must still pass, and `loader/oxd_oracle.py` must still reproduce the pipeline's
   subsumptions exactly. `make test` covers the first; the second needs a real tier.
+- **A new column in `entities.parquet`**: add a line to `COLUMN_DOCS` in `stages/emit.py`. The
+  dataset card renders the dictionary against the frame's real schema, so an undocumented column is
+  published with the word **undocumented** next to it rather than quietly omitted.
+- **A number you want to quote in the docs**: if it describes the artefact, write it into the
+  manifest and cite that, rather than typing it into prose where it will rot. The TBox counts
+  (`classes_declared`, `hierarchy_nodes`, `subsumptions`) work this way and stage 7 recounts them
+  from the shipped `tbox.owl`.
 - **A loader change** (`loader/`): the OxidDB version you tested against, and the `--report` JSON.
 
 ## Things that are deliberate

@@ -19,6 +19,12 @@ make preflight
 Hard-fails on anything that makes a release a lie: stage 7 did not pass, a manifest says
 `"provider": "fake"`, a file listed in a manifest is missing, or a byte drifted from its recorded
 SHA-256. Both publish scripts run this again before they upload, so you cannot skip it by accident.
+`tests/test_preflight.py` breaks the gate one way at a time to prove each refusal still fires.
+
+Stage 7 itself is the deeper pass — nesting, vector identity, manifest checksums, and a recount of
+the TBox counts against the shipped `tbox.owl`. Its hard checks are enumerated in
+`out/validation_report.json`. `make preflight` assumes stage 7 passed: it re-verifies the bytes, not
+the data.
 
 ## 1. GitHub
 

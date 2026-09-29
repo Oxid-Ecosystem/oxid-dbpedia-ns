@@ -86,7 +86,7 @@ oxid-dbpedia-ns/
   config.toml            # sources, buckets and shares, countries, floor, properties, tier sizes
   data/country_map.csv   # historic states, demonyms, aliases -> modern country
   oxid_dbpedia_ns/       # package: stages/, ntriples parser, ontology tools, embeddings, cli
-  01_acquire.py ... 07_validate.py   # thin wrappers around `oxid-dbpedia-ns <stage>`
+  scripts/01_acquire.py ... 07_validate.py   # thin wrappers around `oxid-dbpedia-ns <stage>`
   loader/oxiddb_load.py  # standalone OxidDB loader with the smoke tests
   tests/                 # unit tests + synthetic end-to-end fixture
   cache/                 # downloaded dumps and their Parquet conversions, never committed

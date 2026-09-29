@@ -18,8 +18,8 @@ test: env       ## run the unit tests and the synthetic end-to-end build
 	$(PY) -m pytest -q
 
 lint: env       ## ruff check and format --check over every package
-	.venv/bin/ruff check oxid_dbpedia_ns tests loader publish
-	.venv/bin/ruff format --check oxid_dbpedia_ns tests loader publish
+	.venv/bin/ruff check oxid_dbpedia_ns tests loader publish scripts
+	.venv/bin/ruff format --check oxid_dbpedia_ns tests loader publish scripts
 
 acquire candidates geography rank enrich emit validate: env  ## run one stage by name
 	$(CLI) $@

@@ -52,8 +52,8 @@ change reruns only from the stage it touches:
 | 6 Emit | `oxid-dbpedia-ns emit` | `out/t50`, `out/t100`, `out/t180`, `out/README.md` |
 | 7 Validate | `oxid-dbpedia-ns validate` | `out/validation_report.json` (non-zero exit on a hard failure) |
 
-The numbered scripts (`01_acquire.py` ... `07_validate.py`) are thin wrappers around the same
-commands. `oxid-dbpedia-ns all --from rank` reruns from a given stage.
+The numbered scripts in `scripts/` (`01_acquire.py` ... `07_validate.py`) are thin wrappers around
+the same commands, kept because the numbering states the stage order. `oxid-dbpedia-ns all --from rank` reruns from a given stage.
 
 ## Layout
 
@@ -61,6 +61,7 @@ commands. `oxid-dbpedia-ns all --from rank` reruns from a given stage.
 config.toml              every knob: sources, buckets and shares, countries, floor, properties, tiers
 data/country_map.csv     historic states, demonyms and aliases mapped to modern countries
 oxid_dbpedia_ns/         the pipeline package (stages/, ntriples parser, ontology tools, embeddings)
+scripts/0*.py            thin wrappers: one per stage, in pipeline order
 loader/oxiddb_load.py    standalone loader for OxidDB, with the neurosymbolic smoke test
 loader/oxd_oracle.py     differential oracle against OxidDB's offline reasoner (oxd hierarchy / extents)
 publish/preflight.py     release gate: validation passed, real vectors, bytes match the manifests

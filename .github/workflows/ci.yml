@@ -24,8 +24,8 @@ jobs:
       - run: uv sync --extra dev
       - name: Lint
         run: |
-          uv run ruff check oxid_dbpedia_ns tests loader publish
-          uv run ruff format --check oxid_dbpedia_ns tests loader publish
+          uv run ruff check oxid_dbpedia_ns tests loader publish scripts
+          uv run ruff format --check oxid_dbpedia_ns tests loader publish scripts
       - name: Tests and synthetic end-to-end build
         run: uv run pytest -q
 

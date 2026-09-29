@@ -22,6 +22,7 @@ make lint      # ruff check + ruff format --check over every package
 make test      # unit tests and the synthetic end-to-end build
 ```
 
+`make lint` covers `oxid_dbpedia_ns`, `tests`, `loader`, `publish` and `scripts`.
 CI runs exactly those, plus two metadata checks: `CITATION.cff` must validate against CFF 1.2.0,
 and the version must be identical in `pyproject.toml`, `CITATION.cff` and `CHANGELOG.md`. `make`
 with no target lists every target.
